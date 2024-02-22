@@ -1,8 +1,28 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <iostream>
+#include <vector>
+#include <map>
 
 #pragma warning(disable: 4996)
+
+#define MAXUSERS 100
+
+std::map<int, SOCKET> Connections;
+
+void ClientHandler(int index) {
+	char msg[256];
+	while (true) {
+		recv(Connections[index], msg, sizeof(msg), NULL);
+
+		for (int i = 0; i < Connections.size(); i++) {
+			if (i == index)
+				continue;
+
+			send(Connections[i], msg, sizeof(msg), NULL);
+		}
+	}
+}
 
 int main() {
 
@@ -25,12 +45,18 @@ int main() {
 	listen(sListen, SOMAXCONN);
 
 	SOCKET newConnection;
-	newConnection = accept(sListen, (SOCKADDR*)&addr, &sizeofaddr);
+	for (int i = 0; i < MAXUSERS; ++i) {
+		newConnection = accept(sListen, (SOCKADDR*)&addr, &sizeofaddr);
 
-	if (newConnection == 0)
-		std::cout << "Error! User doesn't connected to the server!\n";
-	else
-		std::cout << "Client connected!\n";
+		if (newConnection == 0)
+			std::cout << "Error! User doesn't connected to the server!\n";
+		else
+			std::cout << "Client connected!\n";
+
+		Connections[i] = newConnection;
+
+		CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, (LPVOID)(i), NULL, NULL);
+	}
 
 	system("pause");
 	return 0;
