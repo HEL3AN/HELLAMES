@@ -1,26 +1,33 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
 #include <iostream>
-#include <vector>
+#include <string>
 #include <map>
 
 #pragma warning(disable: 4996)
 
 #define MAXUSERS 100
 
-std::map<int, SOCKET> Connections;
+std::map<int, std::pair<SOCKET, char[16]>> Connections;
 
 void ClientHandler(int index) {
-	char msg[256];
+	int msg_size;
 	while (true) {
-		recv(Connections[index], msg, sizeof(msg), NULL);
+		recv(Connections[index].first, (char*)&msg_size, sizeof(int), NULL);
+		char* msg = new char[msg_size + 1];
+		msg[msg_size] = '\0';
+		recv(Connections[index].first, msg, msg_size, NULL);
 
 		for (int i = 0; i < Connections.size(); i++) {
 			if (i == index)
 				continue;
 
-			send(Connections[i], msg, sizeof(msg), NULL);
+			send(Connections[i].first, Connections[index].second, sizeof(Connections[index].second), NULL);
+			send(Connections[i].first, (char*)&msg_size, sizeof(int), NULL);
+			send(Connections[i].first, msg, msg_size, NULL);
 		}
+
+		delete[] msg;
 	}
 }
 
@@ -53,7 +60,8 @@ int main() {
 		else
 			std::cout << "Client connected!\n";
 
-		Connections[i] = newConnection;
+		Connections[i].first = newConnection;
+		recv(Connections[i].first, Connections[i].second, sizeof(Connections[i].second), NULL);
 
 		CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, (LPVOID)(i), NULL, NULL);
 	}
