@@ -1,5 +1,6 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
+#define _WINSOCK_DEPRICATED_NO_WARNINGS
 #include <iostream>
 #include <string>
 
@@ -9,18 +10,44 @@ SOCKET Connection;
 
 char Username[16];
 
-void ClientHandler() {
-	char sender_username[16];
-	int msg_size;
-	while (true) {
-		recv(Connection, sender_username, sizeof(sender_username), NULL);
-		recv(Connection, (char*)&msg_size, sizeof(int), NULL);
-		char *msg = new char[msg_size + 1];
-		msg[msg_size] = '\0';
-		recv(Connection, msg, msg_size, NULL);
-		std::cout << sender_username << ": " << msg << "\n";
-		delete[] msg;
+enum Packet {
+	P_ChatMessage
+};
+
+bool ProcessPacket(Packet packettype) {
+	switch (packettype) {
+		case P_ChatMessage:
+		{
+			char sender_username[16];
+			int msg_size;
+			recv(Connection, sender_username, sizeof(sender_username), NULL);
+			recv(Connection, (char*)&msg_size, sizeof(int), NULL);
+			char* msg = new char[msg_size + 1];
+			msg[msg_size] = '\0';
+			recv(Connection, msg, msg_size, NULL);
+			std::cout << sender_username << ": " << msg << "\n";
+			delete[] msg;
+			break;
+		}
+		default:
+		{
+			std::cout << "Unrecognized packet: " << packettype << "\n";
+			break;
+		}
 	}
+
+	return true;
+}
+
+void ClientHandler() {
+	Packet packettype;
+	while (true) {
+		recv(Connection, (char*)&packettype, sizeof(Packet), NULL);
+
+		if (!ProcessPacket(packettype))
+			break;
+	}
+	closesocket(Connection);
 }
 
 int main() {
@@ -57,6 +84,8 @@ int main() {
 		std::string msg;
 		std::getline(std::cin, msg);
 		int msg_size = msg.size();
+		Packet packettype = P_ChatMessage;
+		send(Connection, (char*)&packettype, sizeof(Packet), NULL);
 		send(Connection, (char*)&msg_size, sizeof(int), NULL);
 		send(Connection, msg.c_str(), msg_size, NULL);
 		Sleep(10);

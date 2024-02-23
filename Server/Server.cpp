@@ -1,5 +1,6 @@
 #pragma comment(lib, "ws2_32.lib")
 #include <WinSock2.h>
+#define _WINSOCK_DEPRICATED_NO_WARNINGS
 #include <iostream>
 #include <string>
 #include <map>
@@ -10,25 +11,50 @@
 
 std::map<int, std::pair<SOCKET, char[16]>> Connections;
 
-void ClientHandler(int index) {
-	int msg_size;
-	while (true) {
-		recv(Connections[index].first, (char*)&msg_size, sizeof(int), NULL);
-		char* msg = new char[msg_size + 1];
-		msg[msg_size] = '\0';
-		recv(Connections[index].first, msg, msg_size, NULL);
+enum Packet {
+	P_ChatMessage
+};
 
-		for (int i = 0; i < Connections.size(); i++) {
-			if (i == index)
-				continue;
+bool ProcessPacket(int index, Packet packettype) {
+	switch (packettype) {
+		case P_ChatMessage:
+		{
+			Packet packettype = P_ChatMessage;
+			int msg_size;
+			recv(Connections[index].first, (char*)&msg_size, sizeof(int), NULL);
+			char* msg = new char[msg_size + 1];
+			msg[msg_size] = '\0';
+			recv(Connections[index].first, msg, msg_size, NULL);
 
-			send(Connections[i].first, Connections[index].second, sizeof(Connections[index].second), NULL);
-			send(Connections[i].first, (char*)&msg_size, sizeof(int), NULL);
-			send(Connections[i].first, msg, msg_size, NULL);
+			for (int i = 0; i < Connections.size(); i++) {
+				if (i == index)
+					continue;
+
+				send(Connections[i].first, (char*)&packettype, sizeof(Packet), NULL);
+				send(Connections[i].first, Connections[index].second, sizeof(Connections[index].second), NULL);
+				send(Connections[i].first, (char*)&msg_size, sizeof(int), NULL);
+				send(Connections[i].first, msg, msg_size, NULL);
+			}
+			delete[] msg;
+			break;
 		}
+		default:
+		{
+			std::cout << "Unrecognized packet: " << packettype << "\n";
+			break;
+		}
+    }
+	return true;
+}
 
-		delete[] msg;
+void ClientHandler(int index) {
+	Packet packettype;
+	while (true) {
+		recv(Connections[index].first, (char*)&packettype, sizeof(Packet), NULL);
+		if (!ProcessPacket(index, packettype))
+			break;
 	}
+	closesocket(Connections[index].first);
 }
 
 int main() {
