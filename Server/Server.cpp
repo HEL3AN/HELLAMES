@@ -12,14 +12,14 @@
 std::map<int, std::pair<SOCKET, char[16]>> Connections;
 
 enum Packet {
-	P_ChatMessage
+	P_GlobalChatMessage
 };
 
 bool ProcessPacket(int index, Packet packettype) {
 	switch (packettype) {
-		case P_ChatMessage:
+		case P_GlobalChatMessage:
 		{
-			Packet packettype = P_ChatMessage;
+			Packet packettype = P_GlobalChatMessage;
 			int msg_size;
 			recv(Connections[index].first, (char*)&msg_size, sizeof(int), NULL);
 			char* msg = new char[msg_size + 1];

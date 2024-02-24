@@ -1,8 +1,11 @@
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "pdcurses.lib")
 #include <WinSock2.h>
 #define _WINSOCK_DEPRICATED_NO_WARNINGS
 #include <iostream>
+#include <Windows.h>
 #include <string>
+#include <curses.h>
 
 #pragma warning(disable: 4996)
 
@@ -11,12 +14,14 @@ SOCKET Connection;
 char Username[16];
 
 enum Packet {
-	P_ChatMessage
+	P_GlobalChatMessage,
+	P_PrivateChatMessage,
+	P_UserListRequest
 };
 
 bool ProcessPacket(Packet packettype) {
 	switch (packettype) {
-		case P_ChatMessage:
+		case P_GlobalChatMessage:
 		{
 			char sender_username[16];
 			int msg_size;
@@ -25,13 +30,17 @@ bool ProcessPacket(Packet packettype) {
 			char* msg = new char[msg_size + 1];
 			msg[msg_size] = '\0';
 			recv(Connection, msg, msg_size, NULL);
-			std::cout << sender_username << ": " << msg << "\n";
+			printw(sender_username); addch(':'); printw(msg); addch('\n');
 			delete[] msg;
+			break;
+		}
+		case P_UserListRequest:
+		{
 			break;
 		}
 		default:
 		{
-			std::cout << "Unrecognized packet: " << packettype << "\n";
+			printw("Unrecognized packet: "); printw((char*)packettype); addch('\n');
 			break;
 		}
 	}
@@ -46,17 +55,20 @@ void ClientHandler() {
 
 		if (!ProcessPacket(packettype))
 			break;
+
+		refresh();
 	}
 	closesocket(Connection);
 }
 
 int main() {
-
+	initscr();
+	
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);
 	if (WSAStartup(DLLVersion, &wsaData) != 0) // Проперка, загрузилась ли библиотека с сетевыми функциями
 	{
-		std::cout << "Error! Lib doesn't load!\n";
+		printw("Error! Lib doesn't load!"); addch('\n');
 		exit(0);
 	}
 
@@ -68,29 +80,33 @@ int main() {
 
 	Connection = socket(AF_INET, SOCK_STREAM, NULL);
 	if (connect(Connection, (SOCKADDR*)&addr, sizeof(addr)) != 0) {
-		std::cout << "Error! Failed to connect to the server!\n";
+		printw("Error! Failed to connect to the server!"); addch('\n');
 		return 1;
 	}
-	
-	std::cout << "Connection success!\n";
 
-	std::cout << "Enter your username:";
-	std::cin.getline(Username, sizeof(Username));
+	printw("Connection success!\n");
+
+	printw("Enter your username:");
+	getstr(Username);
 	send(Connection, Username, sizeof(Username), NULL);
+
+	refresh();
 
 	CreateThread(NULL, NULL, (LPTHREAD_START_ROUTINE)ClientHandler, NULL, NULL, NULL);
 
 	while (true) {
-		std::string msg;
-		std::getline(std::cin, msg);
+		char buffer[512];
+		getstr(buffer);
+		std::string msg = buffer;
 		int msg_size = msg.size();
-		Packet packettype = P_ChatMessage;
+		Packet packettype = P_GlobalChatMessage;
 		send(Connection, (char*)&packettype, sizeof(Packet), NULL);
 		send(Connection, (char*)&msg_size, sizeof(int), NULL);
 		send(Connection, msg.c_str(), msg_size, NULL);
 		Sleep(10);
 	}
 
-	system("pause");
+	endwin();
+
 	return 0;
 }
