@@ -75,8 +75,8 @@
     <LibraryPath>C:\Users\artem\Документы\С++\HELLAMES\PDCurses\wincon;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\Users\artem\Документы\С++\HELLAMES\PDCurses;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Users\artem\Документы\С++\HELLAMES\PDCurses\wincon;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\artem\Документы\С++\HELLAMES\libs\PDCurses;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\artem\Документы\С++\HELLAMES\libs\PDCurses\wincon;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
