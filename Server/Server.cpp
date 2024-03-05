@@ -84,7 +84,7 @@ int main() {
 		if (newConnection == 0)
 			std::cout << "Error! User doesn't connected to the server!\n";
 		else
-			std::cout << "Client connected!\n";
+			std::cout << "Client connected! Socket:" + newConnection << std::endl;
 
 		Connections[i].first = newConnection;
 		recv(Connections[i].first, Connections[i].second, sizeof(Connections[i].second), NULL);

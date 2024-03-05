@@ -34,6 +34,10 @@ bool ProcessPacket(Packet packettype) {
 			delete[] msg;
 			break;
 		}
+		case P_PrivateChatMessage:
+		{
+			break;
+		}
 		case P_UserListRequest:
 		{
 			break;
@@ -63,7 +67,7 @@ void ClientHandler() {
 
 int main() {
 	initscr();
-	
+
 	WSAData wsaData;
 	WORD DLLVersion = MAKEWORD(2, 1);
 	if (WSAStartup(DLLVersion, &wsaData) != 0) // Проперка, загрузилась ли библиотека с сетевыми функциями
@@ -84,11 +88,13 @@ int main() {
 		return 1;
 	}
 
-	printw("Connection success!\n");
+	printw("Connection success!"); addch('\n');
 
 	printw("Enter your username:");
 	getstr(Username);
 	send(Connection, Username, sizeof(Username), NULL);
+
+	clear();
 
 	refresh();
 
